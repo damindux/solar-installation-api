@@ -2,6 +2,7 @@ import { authorizedRequest } from "./helpers.ts";
 import { assertEquals } from "@std/assert";
 import { makeTestApp } from "./helpers.ts";
 import { etagOf } from "../src/lib/hash.ts";
+import { HTTPException } from "hono/http-exception";
 
 Deno.test("unknown routes return the standard not-found error body", async () => {
   const { app } = makeTestApp();
@@ -26,6 +27,45 @@ Deno.test("unexpected errors return a generic body without leaking details", asy
   assertEquals(body.code, 50000);
   assertEquals(body.message, "Internal Server Error");
   assertEquals(JSON.stringify(body).includes("private database detail"), false);
+});
+
+Deno.test("thrown not-found exceptions use the resource not-found response", async () => {
+  const { app } = makeTestApp();
+  app.get("/throws-not-found", () => {
+    throw new HTTPException(404, { message: "Route resource is missing" });
+  });
+  const response = await authorizedRequest(app, "/throws-not-found");
+  const body = await response.json();
+
+  assertEquals(response.status, 404);
+  assertEquals(body.code, 40401);
+  assertEquals(body.message, "Resource not found");
+});
+
+Deno.test("HTTP exceptions map to standard request error responses", async () => {
+  const { app } = makeTestApp();
+  const cases = [
+    { status: 400, code: 40001, message: "Invalid request" },
+    { status: 403, code: 40301, message: "Access denied" },
+    { status: 405, code: 40501, message: "Invalid HTTP method" },
+    { status: 406, code: 40601, message: "Not acceptable" },
+    { status: 415, code: 41501, message: "Unsupported media type" },
+  ] as const;
+
+  for (const item of cases) {
+    app.get(`/throws-${item.status}`, () => {
+      throw new HTTPException(item.status);
+    });
+  }
+
+  for (const item of cases) {
+    const response = await authorizedRequest(app, `/throws-${item.status}`);
+    const body = await response.json();
+
+    assertEquals(response.status, item.status);
+    assertEquals(body.code, item.code);
+    assertEquals(body.message, item.message);
+  }
 });
 
 Deno.test("API rejects an unacceptable response format", async () => {

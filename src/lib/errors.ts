@@ -34,8 +34,21 @@ export function validation(
   );
 }
 
+export function invalidRequest(): AppError {
+  return new AppError(
+    400,
+    40001,
+    "Invalid request",
+    "The request could not be processed.",
+  );
+}
+
 export function notFound(message = "Resource not found"): AppError {
   return new AppError(404, 40401, message);
+}
+
+export function methodNotAllowed(): AppError {
+  return new AppError(405, 40501, "Invalid HTTP method");
 }
 
 export function unauthorized(

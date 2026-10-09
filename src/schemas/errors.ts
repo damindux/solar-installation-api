@@ -29,6 +29,10 @@ export const errorResponses = {
     description: "Resource not found",
     content: { "application/json": { schema: ErrorSchema } },
   },
+  405: {
+    description: "Invalid HTTP method",
+    content: { "application/json": { schema: ErrorSchema } },
+  },
   406: {
     description: "Not acceptable",
     content: { "application/json": { schema: ErrorSchema } },
