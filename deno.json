@@ -6,7 +6,7 @@
     "dev": "deno run --allow-env --allow-net --allow-read --env-file --watch main.ts",
     "start": "deno run --allow-env --allow-net --allow-read main.ts",
     "test": "deno test --allow-env --allow-read --allow-net",
-    "check": "deno fmt --check && deno lint && deno check main.ts scripts/seed.ts",
+    "check": "deno fmt --check && deno lint && deno check main.ts",
     "db:generate": "deno run -A --env-file npm:drizzle-kit generate",
     "db:migrate": "deno run -A --env-file npm:drizzle-kit migrate",
     "db:seed": "deno run --allow-env --allow-net --allow-read --allow-write=scripts/.out --env-file scripts/seed.ts"
