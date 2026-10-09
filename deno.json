@@ -12,11 +12,15 @@
     "db:seed": "deno run --allow-env --allow-net --allow-read --allow-write=scripts/.out --env-file scripts/seed.ts"
   },
   "imports": {
+    "@hono/swagger-ui": "npm:@hono/swagger-ui@^0.6.1",
+    "@hono/zod-openapi": "npm:@hono/zod-openapi@^1.6.3",
     "@std/assert": "jsr:@std/assert@1.0.14",
     "drizzle-orm": "npm:drizzle-orm@0.44.7",
     "drizzle-orm/": "npm:/drizzle-orm@0.44.7/",
     "drizzle-kit": "npm:drizzle-kit@0.31.4",
+    "hono": "npm:hono@^4.13.13",
     "postgres": "npm:postgres@3.4.7",
-    "bcryptjs": "npm:bcryptjs@2.4.3"
+    "bcryptjs": "npm:bcryptjs@2.4.3",
+    "zod": "npm:zod@^4.6.5"
   }
 }

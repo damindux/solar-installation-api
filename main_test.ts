@@ -1,16 +1,25 @@
 import { assertEquals } from "@std/assert";
-import { handler } from "./main.ts";
+import { makeTestApp } from "./tests/helpers.ts";
 
-Deno.test("returns html on /", async () => {
-  const res = handler(new Request("http://localhost/"));
-  assertEquals(res.headers.get("content-type"), "text/html");
-  const body = await res.text();
-  assertEquals(body.includes("Welcome to Deno"), true);
+Deno.test("root returns the welcome page", async () => {
+  const { app } = makeTestApp();
+  const response = await app.request("/");
+  assertEquals(
+    response.headers.get("content-type")?.includes("text/html"),
+    true,
+  );
+  assertEquals((await response.text()).includes("Welcome to Deno"), true);
 });
 
-Deno.test("returns json on /api", async () => {
-  const res = handler(new Request("http://localhost/api"));
-  const data = await res.json();
-  assertEquals(data.message, "Hello, world!");
-  assertEquals(typeof data.time, "string");
+Deno.test("versioned API info is public JSON", async () => {
+  const { app } = makeTestApp();
+  const response = await app.request("/api/v1");
+  assertEquals(response.status, 200);
+  assertEquals(response.headers.get("cache-control"), "private, no-cache");
+  assertEquals(response.headers.get("vary"), "Authorization, Accept");
+  assertEquals(await response.json(), {
+    name: "Solar Generation API",
+    version: "1.0.0",
+    docs: "/docs",
+  });
 });
