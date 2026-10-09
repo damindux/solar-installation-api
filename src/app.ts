@@ -1,4 +1,4 @@
-import { OpenAPIHono } from "@hono/zod-openapi";
+import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import { sql } from "drizzle-orm";
 import type { Db } from "../db/client.ts";
 import type { AppConfig } from "./config.ts";
@@ -15,6 +15,7 @@ import { registerAuthRoutes } from "./routes/auth.ts";
 import { registerInstallationWriteRoutes } from "./routes/installation-writes.ts";
 import { registerGenerationWriteRoute } from "./routes/generation-write.ts";
 import { conditionalGet } from "./middleware/conditional-get.ts";
+import { swaggerUI } from "@hono/swagger-ui";
 
 export type AppEnv = {
   Variables: {
@@ -96,12 +97,33 @@ export function createApp(
     }
   });
 
-  app.get("/api/v1", (context) =>
-    context.json({
-      name: "Solar Generation API",
-      version: "1.0.0",
-      docs: "/docs",
-    }));
+  app.openapi(
+    createRoute({
+      method: "get",
+      path: "/api/v1",
+      tags: ["API"],
+      responses: {
+        200: {
+          description: "API information",
+          content: {
+            "application/json": {
+              schema: z.object({
+                name: z.string(),
+                version: z.string(),
+                docs: z.string(),
+              }),
+            },
+          },
+        },
+      },
+    }),
+    (context) =>
+      context.json({
+        name: "Solar Generation API",
+        version: "1.0.0",
+        docs: "/docs",
+      }),
+  );
 
   registerHierarchyRoutes(app, db);
   registerInstallationReadRoutes(app, db);
@@ -109,6 +131,30 @@ export function createApp(
   registerAuthRoutes(app, db, config);
   registerInstallationWriteRoutes(app, db);
   registerGenerationWriteRoute(app, db);
+
+  const openApiDocument = {
+    openapi: "3.1.0" as const,
+    info: {
+      title: "Solar Generation API",
+      version: "1.0.0",
+      description: `
+        API for the Sri Lanka Sustainable Energy Authority solar generation model.
+
+        ## Errors
+
+        All errors use an integer code, a message, a description, a moreInfo link,
+        and an error array. Device ingestion uses a device bearer token; other
+        protected operations use a user JWT.
+        `,
+    },
+  };
+  app.openAPIRegistry.registerComponent("securitySchemes", "bearerAuth", {
+    type: "http",
+    scheme: "bearer",
+  });
+  app.doc31("/openapi.json", openApiDocument);
+  app.doc31("/api/v1/openapi.json", openApiDocument);
+  app.get("/docs", swaggerUI({ url: "/openapi.json" }));
 
   installErrorHandlers(app);
   return app;

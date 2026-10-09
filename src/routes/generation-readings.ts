@@ -2,6 +2,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 import type { Db } from "../../db/client.ts";
 import type { AppEnv } from "../app.ts";
 import type { OpenAPIHono } from "@hono/zod-openapi";
+import { errorResponses } from "../schemas/errors.ts";
 import { pageCollectionSchema, PageQuery } from "../lib/pagination.ts";
 import { getReading, listReadings } from "../repos/readings.ts";
 
@@ -42,8 +43,10 @@ export function registerReadingReadRoutes(
     method: "get",
     path: "/api/v1/solar-installations/{site-id}/generation-readings",
     tags: ["Generation readings"],
+    security: [{ bearerAuth: [] }],
     request: { params: SiteParam, query: ReadingQuery },
     responses: {
+      ...errorResponses,
       200: {
         ...success,
         content: {
@@ -77,8 +80,10 @@ export function registerReadingReadRoutes(
     path:
       "/api/v1/solar-installations/{site-id}/generation-readings/{reading-id}",
     tags: ["Generation readings"],
+    security: [{ bearerAuth: [] }],
     request: { params: ReadingParam },
     responses: {
+      ...errorResponses,
       200: {
         ...success,
         content: { "application/json": { schema: ReadingSchema } },

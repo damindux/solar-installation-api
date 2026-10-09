@@ -6,6 +6,7 @@ import { etagOf, randomToken, sha256Hex } from "../lib/hash.ts";
 import { preconditionFailed, unprocessable } from "../lib/errors.ts";
 import { getStation } from "../repos/hierarchy.ts";
 import type { Scope } from "../lib/jurisdiction.ts";
+import { errorResponses } from "../schemas/errors.ts";
 import {
   createInstallation,
   deleteInstallation,
@@ -75,10 +76,12 @@ export function registerInstallationWriteRoutes(
     method: "post",
     path: "/api/v1/solar-installations",
     tags: ["Solar installations"],
+    security: [{ bearerAuth: [] }],
     request: {
       body: { content: { "application/json": { schema: InstallationBody } } },
     },
     responses: {
+      ...errorResponses,
       201: {
         ...success,
         content: { "application/json": { schema: CreatedInstallationSchema } },
@@ -118,11 +121,13 @@ export function registerInstallationWriteRoutes(
     method: "put",
     path: "/api/v1/solar-installations/{site-id}",
     tags: ["Solar installations"],
+    security: [{ bearerAuth: [] }],
     request: {
       params: SiteParam,
       body: { content: { "application/json": { schema: InstallationBody } } },
     },
     responses: {
+      ...errorResponses,
       200: {
         ...success,
         content: { "application/json": { schema: InstallationSchema } },
@@ -166,8 +171,10 @@ export function registerInstallationWriteRoutes(
     method: "delete",
     path: "/api/v1/solar-installations/{site-id}",
     tags: ["Solar installations"],
+    security: [{ bearerAuth: [] }],
     request: { params: SiteParam },
     responses: {
+      ...errorResponses,
       200: {
         ...success,
         content: {

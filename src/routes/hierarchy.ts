@@ -12,6 +12,7 @@ import {
 } from "../repos/hierarchy.ts";
 import type { AppEnv } from "../app.ts";
 import type { OpenAPIHono } from "@hono/zod-openapi";
+import { errorResponses } from "../schemas/errors.ts";
 
 const ProvinceSchema = z.object({
   province_id: z.number().int(),
@@ -43,7 +44,12 @@ const CollectionQuery = PageQuery.extend({
 const okDescription = { description: "Successful response" };
 
 function routeOptions(method: "get", path: string) {
-  return { method, path, tags: ["Geography"] };
+  return {
+    method,
+    path,
+    tags: ["Geography"],
+    security: [{ bearerAuth: [] }],
+  };
 }
 
 export function registerHierarchyRoutes(
@@ -54,6 +60,7 @@ export function registerHierarchyRoutes(
     ...routeOptions("get", "/api/v1/provinces"),
     request: { query: PageQuery },
     responses: {
+      ...errorResponses,
       200: {
         ...okDescription,
         content: {
@@ -79,6 +86,7 @@ export function registerHierarchyRoutes(
     ...routeOptions("get", "/api/v1/provinces/{province-id}"),
     request: { params: ProvinceParam },
     responses: {
+      ...errorResponses,
       200: {
         ...okDescription,
         content: { "application/json": { schema: ProvinceSchema } },
@@ -96,6 +104,7 @@ export function registerHierarchyRoutes(
     ...routeOptions("get", "/api/v1/provinces/{province-id}/districts"),
     request: { params: ProvinceParam, query: PageQuery },
     responses: {
+      ...errorResponses,
       200: {
         ...okDescription,
         content: {
@@ -126,6 +135,7 @@ export function registerHierarchyRoutes(
     ...routeOptions("get", "/api/v1/districts"),
     request: { query: CollectionQuery },
     responses: {
+      ...errorResponses,
       200: {
         ...okDescription,
         content: {
@@ -154,6 +164,7 @@ export function registerHierarchyRoutes(
     ...routeOptions("get", "/api/v1/districts/{district-id}"),
     request: { params: DistrictParam },
     responses: {
+      ...errorResponses,
       200: {
         ...okDescription,
         content: { "application/json": { schema: DistrictSchema } },
@@ -171,6 +182,7 @@ export function registerHierarchyRoutes(
     ...routeOptions("get", "/api/v1/districts/{district-id}/grid-substations"),
     request: { params: DistrictParam, query: PageQuery },
     responses: {
+      ...errorResponses,
       200: {
         ...okDescription,
         content: {
@@ -201,6 +213,7 @@ export function registerHierarchyRoutes(
     ...routeOptions("get", "/api/v1/grid-substations"),
     request: { query: CollectionQuery },
     responses: {
+      ...errorResponses,
       200: {
         ...okDescription,
         content: {
@@ -230,6 +243,7 @@ export function registerHierarchyRoutes(
     ...routeOptions("get", "/api/v1/grid-substations/{station-id}"),
     request: { params: StationParam },
     responses: {
+      ...errorResponses,
       200: {
         ...okDescription,
         content: { "application/json": { schema: StationSchema } },

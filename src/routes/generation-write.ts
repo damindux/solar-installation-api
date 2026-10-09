@@ -2,6 +2,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 import type { Db } from "../../db/client.ts";
 import type { AppEnv } from "../app.ts";
 import type { OpenAPIHono } from "@hono/zod-openapi";
+import { errorResponses } from "../schemas/errors.ts";
 import { etagOf } from "../lib/hash.ts";
 import { createReading } from "../repos/readings.ts";
 
@@ -32,11 +33,13 @@ export function registerGenerationWriteRoute(
     method: "post",
     path: "/api/v1/solar-installations/{site-id}/generation-readings",
     tags: ["Generation readings"],
+    security: [{ bearerAuth: [] }],
     request: {
       params: SiteParam,
       body: { content: { "application/json": { schema: ReadingBody } } },
     },
     responses: {
+      ...errorResponses,
       201: {
         description: "Reading accepted",
         content: { "application/json": { schema: ReadingSchema } },

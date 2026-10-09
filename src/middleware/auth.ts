@@ -51,7 +51,8 @@ export function requireUser(config: AppConfig): MiddlewareHandler {
   return async (context, next) => {
     const path = context.req.path;
     if (
-      path === "/api/v1" || path === "/api/v1/auth/login" ||
+      path === "/api/v1" || path === "/api/v1/openapi.json" ||
+      path === "/api/v1/auth/login" ||
       isDeviceIngestRequest(path, context.req.method)
     ) {
       await next();

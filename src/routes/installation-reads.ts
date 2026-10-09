@@ -4,6 +4,7 @@ import { notFound } from "../lib/errors.ts";
 import { pageCollectionSchema, PageQuery } from "../lib/pagination.ts";
 import type { AppEnv } from "../app.ts";
 import type { OpenAPIHono } from "@hono/zod-openapi";
+import { errorResponses } from "../schemas/errors.ts";
 import { getStation } from "../repos/hierarchy.ts";
 import {
   getInstallationComposite,
@@ -54,8 +55,10 @@ export function registerInstallationReadRoutes(
     method: "get",
     path: "/api/v1/solar-installations",
     tags: ["Solar installations"],
+    security: [{ bearerAuth: [] }],
     request: { query: InstallationQuery },
     responses: {
+      ...errorResponses,
       200: {
         ...success,
         content: {
@@ -88,8 +91,10 @@ export function registerInstallationReadRoutes(
     method: "get",
     path: "/api/v1/grid-substations/{station-id}/solar-installations",
     tags: ["Solar installations"],
+    security: [{ bearerAuth: [] }],
     request: { params: StationParam, query: PageQuery },
     responses: {
+      ...errorResponses,
       200: {
         ...success,
         content: {
@@ -122,8 +127,10 @@ export function registerInstallationReadRoutes(
     method: "get",
     path: "/api/v1/solar-installations/{site-id}",
     tags: ["Solar installations"],
+    security: [{ bearerAuth: [] }],
     request: { params: SiteParam },
     responses: {
+      ...errorResponses,
       200: {
         ...success,
         content: { "application/json": { schema: CompositeSchema } },
@@ -158,8 +165,10 @@ export function registerInstallationReadRoutes(
     method: "get",
     path: "/api/v1/solar-installations/{site-id}/last-known-reading",
     tags: ["Generation readings"],
+    security: [{ bearerAuth: [] }],
     request: { params: SiteParam },
     responses: {
+      ...errorResponses,
       200: {
         ...success,
         content: { "application/json": { schema: ReadingSchema } },
