@@ -1,3 +1,6 @@
+import { createDb } from "./db/client.ts";
+import { ConfigError, loadConfig } from "./src/config.ts";
+
 export function handler(req: Request): Response {
   const url = new URL(req.url);
 
@@ -14,5 +17,18 @@ export function handler(req: Request): Response {
 }
 
 if (import.meta.main) {
-  Deno.serve(handler);
+  try {
+    const config = loadConfig();
+    const database = createDb(config.runtimeDatabaseUrl, {
+      pooled: config.runtimeDatabaseUrl !== config.databaseUrl,
+    });
+    void database;
+    Deno.serve({ port: config.port }, handler);
+  } catch (error) {
+    if (error instanceof ConfigError) {
+      console.error(error.message);
+      Deno.exit(1);
+    }
+    throw error;
+  }
 }
