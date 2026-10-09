@@ -15,6 +15,12 @@ import {
 } from "../db/schema.ts";
 
 interface SeedData {
+  demo_users: Array<
+    | { username: string; role: "national" }
+    | { username: string; role: "provincial"; province_id: number }
+    | { username: string; role: "district"; district_id: number }
+    | { username: string; role: "station"; station_id: number }
+  >;
   provinces: InsertProvince[];
   districts: InsertDistrict[];
   grid_substations: InsertGridSubstation[];
@@ -35,14 +41,6 @@ interface SeedData {
 }
 
 const tokenFile = "scripts/.out/device-tokens.json";
-const demoUsers = [
-  { username: "national", role: "national" },
-  { username: "prov-western", role: "provincial", province_id: 1 },
-  { username: "dist-colombo", role: "district", district_id: 1 },
-  { username: "dist-matara", role: "district", district_id: 8 },
-  { username: "station-colombo", role: "station", station_id: 1 },
-] as const;
-
 function validateSeed(data: SeedData): void {
   const provinceIds = new Set(data.provinces.map((row) => row.province_id));
   const districtIds = new Set(data.districts.map((row) => row.district_id));
@@ -134,6 +132,9 @@ async function runSeed(): Promise<void> {
   }
 
   const data = parsed as SeedData;
+  if (!Array.isArray(data.demo_users)) {
+    throw new Error("seed.json is missing the demo_users array");
+  }
   for (
     const key of [
       "provinces",
@@ -224,11 +225,20 @@ async function runSeed(): Promise<void> {
       const password = Deno.env.get("SEED_DEMO_PASSWORD");
       if (password) {
         const passwordHash = await bcrypt.hash(password, 10);
-        for (const user of demoUsers) {
+        for (const user of data.demo_users) {
           await tx.insert(users).values({
             ...user,
             password_hash: passwordHash,
-          }).onConflictDoNothing();
+          }).onConflictDoUpdate({
+            target: users.username,
+            set: {
+              password_hash: passwordHash,
+              role: user.role,
+              province_id: "province_id" in user ? user.province_id : null,
+              district_id: "district_id" in user ? user.district_id : null,
+              station_id: "station_id" in user ? user.station_id : null,
+            },
+          });
         }
       }
 

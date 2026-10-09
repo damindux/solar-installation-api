@@ -29,12 +29,27 @@ installations, and 134,400 readings. The supplied seed has no duplicate
 the importer warns and continues past those rows.
 
 Set `SEED_DEMO_PASSWORD` before seeding to create these accounts: `national`,
-`prov-western`, `dist-colombo`, `dist-matara`, and `station-colombo`. Passwords
-are the value you supplied; no default password is provided. A seed run writes
+`prov-western`, `dist-colombo`, `dist-matara`, and `station-colombo`. When set,
+the seeder creates or updates these users with that password. A seed run writes
 device tokens to the ignored file `scripts/.out/device-tokens.json`. Keep that
 file private. To see a token again after seeding, read the file locally; do not
 commit or share it. `deno task db:seed --reset-tokens` invalidates and replaces
 existing device tokens.
+
+### Public demo credentials
+
+All five demo accounts use the shared password `SLSEA-Demo-2026!`:
+
+| Username | Scope |
+| --- | --- |
+| `national` | All provinces and districts |
+| `prov-western` | Western Province |
+| `dist-colombo` | Colombo District |
+| `dist-matara` | Matara District |
+| `station-colombo` | Colombo Grid Substation |
+
+These credentials are public. The national account can create, replace, and
+delete solar installations. Use them for demonstrations only.
 
 ## Tasks
 
