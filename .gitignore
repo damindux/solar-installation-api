@@ -4,6 +4,8 @@
 *.symcache
 .env
 
+references/
+
 /.cargo_home/
 /.idea/
 /.vs/
@@ -51,3 +53,8 @@ Untitled*.ipynb
 
 # pyenv
 /.python-version
+
+# Local environment variants and one-time seed credentials.
+.env.*
+!.env.example
+/scripts/.out/
