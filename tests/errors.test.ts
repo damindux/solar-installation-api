@@ -1,9 +1,10 @@
+import { authorizedRequest } from "./helpers.ts";
 import { assertEquals } from "@std/assert";
 import { makeTestApp } from "./helpers.ts";
 
 Deno.test("unknown routes return the standard not-found error body", async () => {
   const { app } = makeTestApp();
-  const response = await app.request("/unknown");
+  const response = await authorizedRequest(app, "/unknown");
   const body = await response.json();
 
   assertEquals(response.status, 404);
@@ -17,7 +18,7 @@ Deno.test("unexpected errors return a generic body without leaking details", asy
   app.get("/explode", () => {
     throw new Error("private database detail");
   });
-  const response = await app.request("/explode");
+  const response = await authorizedRequest(app, "/explode");
   const body = await response.json();
 
   assertEquals(response.status, 500);
@@ -28,7 +29,7 @@ Deno.test("unexpected errors return a generic body without leaking details", asy
 
 Deno.test("API rejects an unacceptable response format", async () => {
   const { app } = makeTestApp();
-  const response = await app.request("/api/v1", {
+  const response = await authorizedRequest(app, "/api/v1", {
     headers: { Accept: "text/html" },
   });
   const body = await response.json();
@@ -39,7 +40,9 @@ Deno.test("API rejects an unacceptable response format", async () => {
 
 Deno.test("API rejects a non-JSON request body", async () => {
   const { app } = makeTestApp();
-  const response = await app.request("/api/v1/unknown", { method: "POST" });
+  const response = await authorizedRequest(app, "/api/v1/unknown", {
+    method: "POST",
+  });
   const body = await response.json();
 
   assertEquals(response.status, 415);
@@ -48,8 +51,8 @@ Deno.test("API rejects a non-JSON request body", async () => {
 
 Deno.test("invalid hierarchy ids and page limits return validation errors", async () => {
   const { app } = makeTestApp();
-  const badId = await app.request("/api/v1/provinces/0");
-  const badLimit = await app.request("/api/v1/provinces?limit=101");
+  const badId = await authorizedRequest(app, "/api/v1/provinces/0");
+  const badLimit = await authorizedRequest(app, "/api/v1/provinces?limit=101");
 
   assertEquals(badId.status, 400);
   assertEquals((await badId.json()).code, 40001);
@@ -59,10 +62,12 @@ Deno.test("invalid hierarchy ids and page limits return validation errors", asyn
 
 Deno.test("reading history rejects invalid sort and time windows", async () => {
   const { app } = makeTestApp();
-  const badSort = await app.request(
+  const badSort = await authorizedRequest(
+    app,
     "/api/v1/solar-installations/1/generation-readings?sort=oldest",
   );
-  const badWindow = await app.request(
+  const badWindow = await authorizedRequest(
+    app,
     "/api/v1/solar-installations/1/generation-readings?from=2026-10-04T00%3A00%3A00Z&to=2026-10-03T00%3A00%3A00Z",
   );
 

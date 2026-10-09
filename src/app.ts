@@ -10,6 +10,8 @@ import type { Scope } from "./lib/jurisdiction.ts";
 import { registerHierarchyRoutes } from "./routes/hierarchy.ts";
 import { registerInstallationReadRoutes } from "./routes/installation-reads.ts";
 import { registerReadingReadRoutes } from "./routes/generation-readings.ts";
+import { requireUser } from "./middleware/auth.ts";
+import { registerAuthRoutes } from "./routes/auth.ts";
 
 export type AppEnv = { Variables: { scope: Scope } };
 
@@ -22,7 +24,9 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-export function createApp({ db }: AppDependencies): OpenAPIHono<AppEnv> {
+export function createApp(
+  { db, config }: AppDependencies,
+): OpenAPIHono<AppEnv> {
   const app = new OpenAPIHono<AppEnv>({
     defaultHook: (result) => {
       if (!result.success) {
@@ -47,15 +51,8 @@ export function createApp({ db }: AppDependencies): OpenAPIHono<AppEnv> {
     context.header("Vary", "Authorization, Accept");
     await next();
   });
-  // TEMP until M7: authenticated principals will supply this scope.
-  app.use("/api/v1", async (context, next) => {
-    context.set("scope", { role: "national" });
-    await next();
-  });
-  app.use("/api/v1/*", async (context, next) => {
-    context.set("scope", { role: "national" });
-    await next();
-  });
+  app.use("/api/v1", requireUser(config));
+  app.use("/api/v1/*", requireUser(config));
 
   app.get("/", (context) => context.html("<h1>Welcome to Deno!</h1>"));
   app.get("/health", async (context) => {
@@ -92,6 +89,7 @@ export function createApp({ db }: AppDependencies): OpenAPIHono<AppEnv> {
   registerHierarchyRoutes(app, db);
   registerInstallationReadRoutes(app, db);
   registerReadingReadRoutes(app, db);
+  registerAuthRoutes(app, db, config);
 
   installErrorHandlers(app);
   return app;
