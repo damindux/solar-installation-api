@@ -56,3 +56,18 @@ Deno.test("invalid hierarchy ids and page limits return validation errors", asyn
   assertEquals(badLimit.status, 400);
   assertEquals((await badLimit.json()).code, 40001);
 });
+
+Deno.test("reading history rejects invalid sort and time windows", async () => {
+  const { app } = makeTestApp();
+  const badSort = await app.request(
+    "/api/v1/solar-installations/1/generation-readings?sort=oldest",
+  );
+  const badWindow = await app.request(
+    "/api/v1/solar-installations/1/generation-readings?from=2026-10-04T00%3A00%3A00Z&to=2026-10-03T00%3A00%3A00Z",
+  );
+
+  assertEquals(badSort.status, 400);
+  assertEquals((await badSort.json()).code, 40001);
+  assertEquals(badWindow.status, 400);
+  assertEquals((await badWindow.json()).code, 40001);
+});
