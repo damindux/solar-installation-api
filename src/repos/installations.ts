@@ -6,7 +6,12 @@ import {
   gridSubstations,
   solarInstallations,
 } from "../../db/schema.ts";
-import { notFound } from "../lib/errors.ts";
+import {
+  conflict,
+  notFound,
+  postgresErrorCode,
+  unprocessable,
+} from "../lib/errors.ts";
 import type { Page } from "../lib/pagination.ts";
 import { envelope } from "../lib/pagination.ts";
 import { numericToNumber, serializeTimestamp } from "../lib/serialize.ts";
@@ -183,4 +188,75 @@ export async function visibleInstallationOrThrow(
   const installation = await loadVisibleInstallation(db, scope, siteId);
   if (!installation) throw notFound();
   return installation;
+}
+
+export async function createInstallation(
+  db: Db,
+  values: {
+    address: string;
+    device_id: string;
+    station_id: number;
+    device_token_hash: string;
+  },
+) {
+  try {
+    const [row] = await db.insert(solarInstallations).values(values).returning({
+      site_id: solarInstallations.site_id,
+      address: solarInstallations.address,
+      device_id: solarInstallations.device_id,
+      station_id: solarInstallations.station_id,
+      created_at: solarInstallations.created_at,
+      updated_at: solarInstallations.updated_at,
+    });
+    return row;
+  } catch (error) {
+    const code = postgresErrorCode(error);
+    if (code === "23505") {
+      throw conflict(
+        40901,
+        "An installation with this device_id already exists.",
+      );
+    }
+    if (code === "23503") throw unprocessable();
+    throw error;
+  }
+}
+
+export async function replaceInstallation(
+  db: Db,
+  siteId: number,
+  values: { address: string; device_id: string; station_id: number },
+) {
+  try {
+    const [row] = await db.update(solarInstallations).set({
+      ...values,
+      updated_at: new Date(),
+    }).where(eq(solarInstallations.site_id, siteId)).returning({
+      site_id: solarInstallations.site_id,
+      address: solarInstallations.address,
+      device_id: solarInstallations.device_id,
+      station_id: solarInstallations.station_id,
+    });
+    return row ?? null;
+  } catch (error) {
+    const code = postgresErrorCode(error);
+    if (code === "23505") {
+      throw conflict(
+        40901,
+        "An installation with this device_id already exists.",
+      );
+    }
+    if (code === "23503") throw unprocessable();
+    throw error;
+  }
+}
+
+export async function deleteInstallation(
+  db: Db,
+  siteId: number,
+): Promise<boolean> {
+  const [row] = await db.delete(solarInstallations)
+    .where(eq(solarInstallations.site_id, siteId))
+    .returning({ site_id: solarInstallations.site_id });
+  return row !== undefined;
 }

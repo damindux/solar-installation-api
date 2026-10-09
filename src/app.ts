@@ -10,10 +10,20 @@ import type { Scope } from "./lib/jurisdiction.ts";
 import { registerHierarchyRoutes } from "./routes/hierarchy.ts";
 import { registerInstallationReadRoutes } from "./routes/installation-reads.ts";
 import { registerReadingReadRoutes } from "./routes/generation-readings.ts";
-import { requireUser } from "./middleware/auth.ts";
+import { requireDevice, requireUser } from "./middleware/auth.ts";
 import { registerAuthRoutes } from "./routes/auth.ts";
+import { registerInstallationWriteRoutes } from "./routes/installation-writes.ts";
+import { registerGenerationWriteRoute } from "./routes/generation-write.ts";
 
-export type AppEnv = { Variables: { scope: Scope } };
+export type AppEnv = {
+  Variables: {
+    scope: Scope;
+    principal: { kind: "user"; userId: number; scope: Scope } | {
+      kind: "device";
+      siteId: number;
+    };
+  };
+};
 
 export interface AppDependencies {
   db: Db;
@@ -53,6 +63,10 @@ export function createApp(
   });
   app.use("/api/v1", requireUser(config));
   app.use("/api/v1/*", requireUser(config));
+  app.use(
+    "/api/v1/solar-installations/:site-id/generation-readings",
+    requireDevice(db, config),
+  );
 
   app.get("/", (context) => context.html("<h1>Welcome to Deno!</h1>"));
   app.get("/health", async (context) => {
@@ -90,6 +104,8 @@ export function createApp(
   registerInstallationReadRoutes(app, db);
   registerReadingReadRoutes(app, db);
   registerAuthRoutes(app, db, config);
+  registerInstallationWriteRoutes(app, db);
+  registerGenerationWriteRoute(app, db);
 
   installErrorHandlers(app);
   return app;

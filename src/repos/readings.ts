@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, gte, lt, sql } from "drizzle-orm";
 import type { Db } from "../../db/client.ts";
 import { generationReadings } from "../../db/schema.ts";
-import { notFound } from "../lib/errors.ts";
+import { conflict, notFound, postgresErrorCode } from "../lib/errors.ts";
 import { serializeTimestamp } from "../lib/serialize.ts";
 import { loadVisibleInstallation } from "./installations.ts";
 import type { Page } from "../lib/pagination.ts";
@@ -72,4 +72,33 @@ export async function getReading(
   )).limit(1);
   if (!row) throw notFound();
   return serializeReading(row);
+}
+
+export async function createReading(
+  db: Db,
+  siteId: number,
+  values: {
+    timestamp: Date;
+    instantaneous_power_kw: number;
+    cumulative_energy_kwh: number;
+    voltage: number;
+  },
+) {
+  try {
+    const [row] = await db.insert(generationReadings).values({
+      ...values,
+      site_id: siteId,
+    }).returning();
+    return serializeReading(row);
+  } catch (error) {
+    const code = postgresErrorCode(error);
+    if (code === "23505") {
+      throw conflict(
+        40902,
+        "A reading for this site and timestamp already exists.",
+      );
+    }
+    if (code === "23503") throw notFound();
+    throw error;
+  }
 }

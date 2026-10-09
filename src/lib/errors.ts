@@ -78,6 +78,16 @@ export function internalError(): AppError {
   return new AppError(500, 50000, "Internal Server Error");
 }
 
+export function postgresErrorCode(error: unknown): string | undefined {
+  let current: unknown = error;
+  for (let depth = 0; depth < 5 && current instanceof Error; depth++) {
+    const code = (current as Error & { code?: unknown }).code;
+    if (typeof code === "string") return code;
+    current = (current as Error & { cause?: unknown }).cause;
+  }
+  return undefined;
+}
+
 export function toErrorBody(error: AppError): ErrorBody {
   return {
     code: error.code,

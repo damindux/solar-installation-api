@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { eq, sql } from "drizzle-orm";
 import { createDb } from "../db/client.ts";
+import { randomToken, sha256Hex } from "../src/lib/hash.ts";
 import {
   districts,
   generationReadings,
@@ -97,24 +98,6 @@ function validateSeed(data: SeedData): void {
   }
 }
 
-async function sha256Hex(value: string): Promise<string> {
-  const digest = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(value),
-  );
-  return Array.from(
-    new Uint8Array(digest),
-    (byte) => byte.toString(16).padStart(2, "0"),
-  ).join("");
-}
-
-function makeDeviceToken(): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(32));
-  const binary = String.fromCharCode(...bytes);
-  return "slsea_dev_" +
-    btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
-}
-
 async function readKnownTokens(): Promise<Record<string, string>> {
   try {
     return JSON.parse(await Deno.readTextFile(tokenFile)) as Record<
@@ -178,8 +161,8 @@ async function runSeed(): Promise<void> {
     tokens.set(
       row.site_id,
       resetTokens
-        ? makeDeviceToken()
-        : knownTokens[String(row.site_id)] ?? makeDeviceToken(),
+        ? randomToken()
+        : knownTokens[String(row.site_id)] ?? randomToken(),
     );
   }
 
