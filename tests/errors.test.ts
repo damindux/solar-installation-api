@@ -1,6 +1,7 @@
 import { authorizedRequest } from "./helpers.ts";
 import { assertEquals } from "@std/assert";
 import { makeTestApp } from "./helpers.ts";
+import { etagOf } from "../src/lib/hash.ts";
 
 Deno.test("unknown routes return the standard not-found error body", async () => {
   const { app } = makeTestApp();
@@ -75,4 +76,40 @@ Deno.test("reading history rejects invalid sort and time windows", async () => {
   assertEquals((await badSort.json()).code, 40001);
   assertEquals(badWindow.status, 400);
   assertEquals((await badWindow.json()).code, 40001);
+});
+
+Deno.test("conditional GET uses strong entity tags and honors precedence", async () => {
+  const { app } = makeTestApp();
+  app.get("/api/v1/conditional", (context) =>
+    context.json({ value: 1 }, 200, {
+      "Last-Modified": "Wed, 21 Oct 2015 07:28:00 GMT",
+    }));
+  const first = await authorizedRequest(app, "/api/v1/conditional");
+  const etag = first.headers.get("etag");
+  assertEquals(etag, await etagOf('{"value":1}'));
+
+  const matched = await authorizedRequest(app, "/api/v1/conditional", {
+    headers: { "If-None-Match": `W/${etag}` },
+  });
+  assertEquals(matched.status, 304);
+  assertEquals(await matched.text(), "");
+  assertEquals(matched.headers.get("etag"), etag);
+
+  const wildcard = await authorizedRequest(app, "/api/v1/conditional", {
+    headers: { "If-None-Match": "*" },
+  });
+  assertEquals(wildcard.status, 304);
+
+  const precedence = await authorizedRequest(app, "/api/v1/conditional", {
+    headers: {
+      "If-None-Match": '"different"',
+      "If-Modified-Since": new Date(Date.now() + 60_000).toUTCString(),
+    },
+  });
+  assertEquals(precedence.status, 200);
+
+  const dateMatch = await authorizedRequest(app, "/api/v1/conditional", {
+    headers: { "If-Modified-Since": "Wed, 21 Oct 2015 07:28:00 GMT" },
+  });
+  assertEquals(dateMatch.status, 304);
 });

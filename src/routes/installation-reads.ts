@@ -132,13 +132,26 @@ export function registerInstallationReadRoutes(
   });
   app.openapi(compositeRoute, async (context) => {
     const siteId = context.req.valid("param")["site-id"];
+    const installation = await visibleInstallationOrThrow(
+      db,
+      context.get("scope"),
+      siteId,
+    );
     const composite = await getInstallationComposite(
       db,
       context.get("scope"),
       siteId,
     );
     if (!composite) throw notFound();
-    return context.json(composite, 200);
+    const readingTimestamp = composite.last_known_reading?.timestamp;
+    const readingTime = readingTimestamp ? Date.parse(readingTimestamp) : 0;
+    const modifiedTime = Math.max(
+      installation.updated_at.getTime(),
+      readingTime,
+    );
+    return context.json(composite, 200, {
+      "Last-Modified": new Date(modifiedTime).toUTCString(),
+    });
   });
 
   const lastReadingRoute = createRoute({

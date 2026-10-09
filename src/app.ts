@@ -14,6 +14,7 @@ import { requireDevice, requireUser } from "./middleware/auth.ts";
 import { registerAuthRoutes } from "./routes/auth.ts";
 import { registerInstallationWriteRoutes } from "./routes/installation-writes.ts";
 import { registerGenerationWriteRoute } from "./routes/generation-write.ts";
+import { conditionalGet } from "./middleware/conditional-get.ts";
 
 export type AppEnv = {
   Variables: {
@@ -51,6 +52,8 @@ export function createApp(
   app.use("*", requestLog);
   app.use("/api/v1", negotiate);
   app.use("/api/v1/*", negotiate);
+  app.use("/api/v1", conditionalGet);
+  app.use("/api/v1/*", conditionalGet);
   app.use("/api/v1", async (context, next) => {
     context.header("Cache-Control", "private, no-cache");
     context.header("Vary", "Authorization, Accept");

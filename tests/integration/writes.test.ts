@@ -54,6 +54,15 @@ Deno.test({
       );
       const readBackBody = await readBack.json();
       assertEquals("device_token" in readBackBody, false);
+      const initialEtag = readBack.headers.get("etag");
+      assertExists(initialEtag);
+      const notModified = await authorizedRequest(
+        app,
+        "/api/v1/solar-installations/" + siteId,
+        { headers: { "If-None-Match": initialEtag } },
+      );
+      assertEquals(notModified.status, 304);
+      assertEquals(await notModified.text(), "");
 
       const duplicateDevice = await authorizedRequest(
         app,
@@ -185,6 +194,30 @@ Deno.test({
         "/api/v1/solar-installations/" + siteId + "/generation-readings/" +
           reading.reading_id,
       );
+      const changedSinceReading = await authorizedRequest(
+        app,
+        "/api/v1/solar-installations/" + siteId,
+        { headers: { "If-None-Match": initialEtag } },
+      );
+      assertEquals(changedSinceReading.status, 200);
+
+      const staleDateWrite = await authorizedRequest(
+        app,
+        "/api/v1/solar-installations/" + siteId,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "If-Unmodified-Since": "Wed, 21 Oct 2015 07:28:00 GMT",
+          },
+          body: JSON.stringify({
+            address: "Updated integration site",
+            device_id: deviceId,
+            station_id: 1,
+          }),
+        },
+      );
+      assertEquals(staleDateWrite.status, 412);
 
       const duplicateReading = await app.request(
         "/api/v1/solar-installations/" + siteId + "/generation-readings",
@@ -213,7 +246,10 @@ Deno.test({
         "/api/v1/solar-installations/" + siteId,
         {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "If-Match": changedSinceReading.headers.get("etag")!,
+          },
           body: JSON.stringify(replaceBody),
         },
       );
@@ -228,6 +264,21 @@ Deno.test({
       );
       assertEquals(replaceFirst.status, 200);
       assertEquals(await replaceFirst.json(), await replaceSecond.json());
+
+      const staleReplace = await authorizedRequest(
+        app,
+        "/api/v1/solar-installations/" + siteId,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "If-Match": initialEtag,
+          },
+          body: JSON.stringify(replaceBody),
+        },
+      );
+      assertEquals(staleReplace.status, 412);
+      assertEquals((await staleReplace.json()).code, 41201);
 
       const deleteResponse = await authorizedRequest(
         app,
