@@ -16,6 +16,7 @@ import { registerInstallationWriteRoutes } from "./routes/installation-writes.ts
 import { registerGenerationWriteRoute } from "./routes/generation-write.ts";
 import { conditionalGet } from "./middleware/conditional-get.ts";
 import { swaggerUI } from "@hono/swagger-ui";
+import { registerGenerationSummaryRoute } from "./routes/generation-summary.ts";
 
 export type AppEnv = {
   Variables: {
@@ -131,6 +132,7 @@ export function createApp(
   registerAuthRoutes(app, db, config);
   registerInstallationWriteRoutes(app, db);
   registerGenerationWriteRoute(app, db);
+  registerGenerationSummaryRoute(app, db);
 
   const openApiDocument = {
     openapi: "3.1.0" as const,

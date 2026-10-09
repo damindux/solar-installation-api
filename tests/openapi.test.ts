@@ -18,6 +18,7 @@ Deno.test("OpenAPI 3.1 publishes the API catalogue and bearer security", async (
     "/api/v1/districts",
     "/api/v1/districts/{district-id}",
     "/api/v1/districts/{district-id}/grid-substations",
+    "/api/v1/districts/{district-id}/generation-summary",
     "/api/v1/grid-substations",
     "/api/v1/grid-substations/{station-id}",
     "/api/v1/grid-substations/{station-id}/solar-installations",

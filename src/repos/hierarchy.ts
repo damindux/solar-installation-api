@@ -122,3 +122,55 @@ export async function getStation(db: Db, scope: Scope, id: number) {
     .limit(1);
   return row ?? null;
 }
+
+export async function getDistrictGenerationSummary(
+  db: Db,
+  districtId: number,
+  date: string,
+  start: Date,
+  end: Date,
+) {
+  const [row] = await db.execute<{
+    installation_count: number | string;
+    current_total_power_kw: number | string;
+    today_total_energy_kwh: number | string;
+  }>(sql`
+    WITH inst AS (
+      SELECT si.site_id FROM solar_installations si
+      JOIN grid_substations gs ON gs.station_id = si.station_id
+      WHERE gs.district_id = ${districtId}
+    ), latest AS (
+      SELECT DISTINCT ON (r.site_id) r.site_id, r.instantaneous_power_kw AS p
+      FROM generation_readings r JOIN inst USING (site_id)
+      ORDER BY r.site_id, r."timestamp" DESC, r.reading_id DESC
+    ), day_end AS (
+      SELECT DISTINCT ON (r.site_id) r.site_id, r.cumulative_energy_kwh AS e
+      FROM generation_readings r JOIN inst USING (site_id)
+      WHERE r."timestamp" >= ${start.toISOString()}::timestamptz
+        AND r."timestamp" < ${end.toISOString()}::timestamptz
+      ORDER BY r.site_id, r."timestamp" DESC, r.reading_id DESC
+    ), before AS (
+      SELECT DISTINCT ON (r.site_id) r.site_id, r.cumulative_energy_kwh AS e
+      FROM generation_readings r JOIN inst USING (site_id)
+      WHERE r."timestamp" < ${start.toISOString()}::timestamptz
+      ORDER BY r.site_id, r."timestamp" DESC, r.reading_id DESC
+    ), day_first AS (
+      SELECT DISTINCT ON (r.site_id) r.site_id, r.cumulative_energy_kwh AS e
+      FROM generation_readings r JOIN inst USING (site_id)
+      WHERE r."timestamp" >= ${start.toISOString()}::timestamptz
+        AND r."timestamp" < ${end.toISOString()}::timestamptz
+      ORDER BY r.site_id, r."timestamp" ASC, r.reading_id ASC
+    )
+    SELECT (SELECT count(*) FROM inst)::int AS installation_count,
+      COALESCE((SELECT sum(p) FROM latest), 0) AS current_total_power_kw,
+      COALESCE((SELECT sum(GREATEST(de.e - COALESCE(b.e, df.e), 0))
+        FROM day_end de JOIN day_first df USING (site_id)
+        LEFT JOIN before b USING (site_id)), 0) AS today_total_energy_kwh
+  `);
+  return {
+    date,
+    installation_count: Number(row?.installation_count ?? 0),
+    current_total_power_kw: Number(row?.current_total_power_kw ?? 0),
+    today_total_energy_kwh: Number(row?.today_total_energy_kwh ?? 0),
+  };
+}
