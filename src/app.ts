@@ -73,7 +73,11 @@ export function createApp(
     requireDevice(db, config),
   );
 
-  app.get("/", (context) => context.html("<h1>Welcome to Deno!</h1>"));
+  app.get("/", (context) =>
+    context.html(
+      '<h1>SLSEA Solar Generation API</h1><p><a href="/docs">OpenAPI documentation</a></p>',
+    )
+  );
   app.get("/health", async (context) => {
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
     try {

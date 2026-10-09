@@ -1,14 +1,17 @@
 import { assertEquals } from "@std/assert";
 import { makeTestApp } from "./tests/helpers.ts";
 
-Deno.test("root returns the welcome page", async () => {
+Deno.test("root links to the API documentation", async () => {
   const { app } = makeTestApp();
   const response = await app.request("/");
   assertEquals(
     response.headers.get("content-type")?.includes("text/html"),
     true,
   );
-  assertEquals((await response.text()).includes("Welcome to Deno"), true);
+  const body = await response.text();
+  assertEquals(body.includes("SLSEA Solar Generation API"), true);
+  assertEquals(body.includes('href="/docs"'), true);
+  assertEquals(body.includes("OpenAPI documentation"), true);
 });
 
 Deno.test("versioned API info is public JSON", async () => {
