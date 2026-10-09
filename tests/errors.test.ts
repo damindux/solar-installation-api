@@ -45,3 +45,14 @@ Deno.test("API rejects a non-JSON request body", async () => {
   assertEquals(response.status, 415);
   assertEquals(body.code, 41501);
 });
+
+Deno.test("invalid hierarchy ids and page limits return validation errors", async () => {
+  const { app } = makeTestApp();
+  const badId = await app.request("/api/v1/provinces/0");
+  const badLimit = await app.request("/api/v1/provinces?limit=101");
+
+  assertEquals(badId.status, 400);
+  assertEquals((await badId.json()).code, 40001);
+  assertEquals(badLimit.status, 400);
+  assertEquals((await badLimit.json()).code, 40001);
+});

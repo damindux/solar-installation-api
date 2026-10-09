@@ -6,6 +6,10 @@ import { validation } from "./lib/errors.ts";
 import { installErrorHandlers } from "./middleware/error-handler.ts";
 import { negotiate } from "./middleware/negotiate.ts";
 import { requestLog } from "./middleware/request-log.ts";
+import type { Scope } from "./lib/jurisdiction.ts";
+import { registerHierarchyRoutes } from "./routes/hierarchy.ts";
+
+export type AppEnv = { Variables: { scope: Scope } };
 
 export interface AppDependencies {
   db: Db;
@@ -16,8 +20,8 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-export function createApp({ db }: AppDependencies): OpenAPIHono {
-  const app = new OpenAPIHono({
+export function createApp({ db }: AppDependencies): OpenAPIHono<AppEnv> {
+  const app = new OpenAPIHono<AppEnv>({
     defaultHook: (result) => {
       if (!result.success) {
         throw validation(result.error.issues.map((issue) => ({
@@ -39,6 +43,15 @@ export function createApp({ db }: AppDependencies): OpenAPIHono {
   app.use("/api/v1/*", async (context, next) => {
     context.header("Cache-Control", "private, no-cache");
     context.header("Vary", "Authorization, Accept");
+    await next();
+  });
+  // TEMP until M7: authenticated principals will supply this scope.
+  app.use("/api/v1", async (context, next) => {
+    context.set("scope", { role: "national" });
+    await next();
+  });
+  app.use("/api/v1/*", async (context, next) => {
+    context.set("scope", { role: "national" });
     await next();
   });
 
@@ -73,6 +86,8 @@ export function createApp({ db }: AppDependencies): OpenAPIHono {
       version: "1.0.0",
       docs: "/docs",
     }));
+
+  registerHierarchyRoutes(app, db);
 
   installErrorHandlers(app);
   return app;
