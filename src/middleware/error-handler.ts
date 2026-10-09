@@ -1,4 +1,5 @@
 import type { OpenAPIHono } from "@hono/zod-openapi";
+import type { Env } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import {
   AppError,
@@ -7,7 +8,7 @@ import {
   toErrorBody,
 } from "../lib/errors.ts";
 
-export function installErrorHandlers(app: OpenAPIHono): void {
+export function installErrorHandlers<E extends Env>(app: OpenAPIHono<E>): void {
   app.onError((error, context) => {
     const appError = error instanceof AppError ? error : internalError();
     if (!(error instanceof AppError)) console.error(error);
