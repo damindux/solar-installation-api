@@ -8,6 +8,7 @@ import { negotiate } from "./middleware/negotiate.ts";
 import { requestLog } from "./middleware/request-log.ts";
 import type { Scope } from "./lib/jurisdiction.ts";
 import { registerHierarchyRoutes } from "./routes/hierarchy.ts";
+import { registerInstallationReadRoutes } from "./routes/installation-reads.ts";
 
 export type AppEnv = { Variables: { scope: Scope } };
 
@@ -88,6 +89,7 @@ export function createApp({ db }: AppDependencies): OpenAPIHono<AppEnv> {
     }));
 
   registerHierarchyRoutes(app, db);
+  registerInstallationReadRoutes(app, db);
 
   installErrorHandlers(app);
   return app;
